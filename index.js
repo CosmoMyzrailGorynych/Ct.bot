@@ -15,7 +15,7 @@ docs.clone();
 const client = new Discord.Client();
 client.prefix = config.prefix;
 client.commands = CommandHandler.register(client);
-client.docs = docs.parse();
+client.docs = docs.docs;
 
 client.on('ready', () => {
     logger.info(

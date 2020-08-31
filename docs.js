@@ -1,37 +1,13 @@
 const shell = require('shelljs');
-const Parser = require('markdown-parser');
 const p = require('path');
 const fs = require('fs');
 const logger = require('./index.js').logger;
-const { Collection } = require('discord.js');
+
+const jdown = require('jdown');
 
 const docrepo = 'https://github.com/ct-js/docs.ctjs.rocks.git';
 const docpath = 'ctjs_docs';
-
-// Path searching utilities
-shell.cd(p.join(__dirname, docpath));
-// https://stackoverflow.com/a/47492545/13825612
-const isDirectory = (path) => fs.statSync(path).isDirectory();
-const getDirectories = (path) =>
-    fs
-        .readdirSync(path)
-        .map((name) => p.join(path, name))
-        .filter(isDirectory);
-
-const isMarkdown = (path) => path.endsWith('.md');
-const getFiles = (path) =>
-    fs
-        .readdirSync(path)
-        .map((name) => p.join(path, name))
-        .filter(isMarkdown);
-
-const getFilesRecursively = (path) => {
-    let dirs = getDirectories(path);
-    let files = dirs
-        .map((dir) => getFilesRecursively(dir))
-        .reduce((a, b) => a.concat(b), []);
-    return files.concat(getFiles(path));
-};
+const docContent = jdown(docpath, {parseMd: false});
 
 module.exports = {
     clone() {
@@ -53,25 +29,11 @@ module.exports = {
             shell.exec('git pull origin master');
         }
     },
-    // Returns all markdown files' names with converted objects
-    async parse() {
-        const mdFiles = getFilesRecursively('docs');
-        // Create index
-        let index = new Map();
-        for (const file of mdFiles) {
-            const parser = new Parser();
-
-            const mdFilename = file.split('\\').slice(-1)[0].slice(0, -3);
-            const raw = fs.readFileSync(file, 'utf-8');
-            const md = parser.parse(raw);
-            index.set(mdFilename, { content: md, filename: file });
-        }
-        return index;
-    },
     query(docs, term) {
         // TODO: Get documentation based off term
     },
     getTopics(docs) {
         // TODO: Get all topics and return an array
     },
+    docs: docContent
 };
