@@ -1,34 +1,40 @@
 const Embeds = require('../../embeds.js');
-const docs = require('../../docs.js');
+const {getAllHeadings} = require('../../docs.js');
+
 const slugger = require('github-slugger');
 
-let cachedDocs = {};
-docs.clone();
-docs.parse().then(docs => cachedDocs = docs);
+const cleanTitle = title =>
+    title
+        .replace(/^#+\s?/, '')
+        .replace(/<badge>([\s\S]+?)<\/badge>/gi, '($1)');
+const toDocSlug = title => slugger
+    .slug(cleanTitle(title)
+        .replace(/\./g, '-')
+        .replace(/[()]/g, ' ')
+        .trim()
+        .toLowerCase()
+    );
 
 module.exports = {
     name: 'doc',
     description: 'View documentation topics by keyword.',
-    run(message, args) {
+    run: async function(message, args) {
         if (!args || !args.length) {
             message.channel.send(Embeds.info(
                 '#446adb',
-
+                'Oh no'
             ));
             return;
         }
+        const index = await getAllHeadings();
         const query = args.join(' ').toLowerCase();
         const results = [];
-        for (const file in cachedDocs) {
-            for (const heading of cachedDocs[file].headings) {
+        for (const file in index) {
+            for (const heading of index[file].headings) {
                 if (heading.toLowerCase().indexOf(query) !== -1) {
-                    let strippedHeading = heading
-                        .replace(/^#+\s?/, '')
-                        .replace(/<badge>([\s\S]+?)<\/badge>/gi, '($1)');
-                    const slug = slugger.slug(strippedHeading.replace(/\./g, '-').toLowerCase());
                     results.push({
-                        name: `${strippedHeading} at ${cachedDocs[file].title}`,
-                        value: `https://docs.ctjs.rocks/${file.slice(5)}.html#${slug}`
+                        name: `${cleanTitle(heading)} at ${cleanTitle(index[file].title)}`,
+                        value: `${index[file].url}#${toDocSlug(heading)}`
                     });
                 }
             }
